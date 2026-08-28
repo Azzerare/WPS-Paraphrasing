@@ -1,6 +1,18 @@
 var app = document.getElementById('app');
 var DEFAULT_BASE_URL = 'https://api.deepseek.com/v1';
 var DEFAULT_MODEL = 'deepseek-chat';
+var T = {};
+T.title='\u540c\u4e49\u66ff\u6362';T.back='\u2190 \u8fd4\u56de';T.add='+ \u65b0\u589e';
+T.apiCfg='API Key \u914d\u7f6e';T.noCfg='\u8fd8\u6ca1\u6709\u914d\u7f6e\uff0c\u70b9\u4e0b\u65b9\u65b0\u589e\u3002';
+T.name='\u540d\u79f0';T.namePh='\u5982\uff1aDeepSeek';T.apiKey='API Key';
+T.save='\u4fdd\u5b58';T.nameReq='\u540d\u79f0\u548c API Key \u4e0d\u80fd\u4e3a\u7a7a';
+T.use='\u542f\u7528';T.edit='\u7f16\u8f91';T.del='\u5220\u9664';T.using='\u4f7f\u7528\u4e2d';
+T.delConfirm='\u786e\u5b9a\u5220\u9664\uff1f';T.curCfg='\u5f53\u524d\u914d\u7f6e\uff1a';
+T.settings='\u8bbe\u7f6e';
+T.hint='\u5728\u6587\u6863\u4e2d\u9009\u4e2d\u82f1\u6587\u5355\u8bcd\uff0c\u53f3\u952e\u70b9\u51fb\u300c\u540c\u4e49\u66ff\u6362\u300d\u5f00\u59cb\u3002';
+T.loading='\u6b63\u5728\u751f\u6210\u5019\u9009\u8bcd\u2026';
+T.noWord='\u8bf7\u5148\u5728\u6587\u6863\u4e2d\u9009\u4e2d\u4e00\u4e2a\u82f1\u6587\u5355\u8bcd';
+T.errNoProfile='\u5c1a\u672a\u914d\u7f6e API Key\uff0c\u8bf7\u5148\u6dfb\u52a0\u3002';
 var SYS_PROMPT = [
   'You are an English writing assistant. User gives an English word and its sentence.',
   'Recommend 5 contextually appropriate synonyms.',
@@ -14,7 +26,6 @@ function setActiveId(id){localStorage.setItem('PARAPHRASE_ACTIVE_PROFILE',id)}
 function getActiveProfile(){var id=getActiveId();var l=getProfiles();for(var i=0;i<l.length;i++){if(l[i].id===id)return l[i]}return null}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function $(id){return document.getElementById(id)}
-var T={title:'�w^~)�v��y��yۧu����w^~)�v',back:'�w^~)�t+�u���T�w^~)�v',add:'+"��y��yۧu���^',apiCfg:'API Key �w^~)�v��y��y�',noCfg:+�u���X�w^~)�v��y��yۧu���M�w^~)�v��y��yۧu���y�w^~)�v��y��yۧu���p�w^~)�v��y��y�',name:&��y��yۧu���p',namePh:&��y��yۧu���ZDeepSeek',apiKey:'API Key',save:'�w^~)�v��y��y�',nameReq:&��y��yۧu���p�w^~)�t API Key"��y��yۧu���}�w^~)�v��y��y�',use:'�w^~)�v��y��y�',edit:&��y��yۧu���Q',del:&��y��yۧu���d',using:'�w^~)�v��y��yۧu���m',delConfirm:+�u���n�w^~)�v��y��yۧu���d�w^~)�w',curCfg:+�u���S�w^~)�v��y��yۧu���n�w^~)�v',settings:&��y��yۧu���n',hint:+�u���h�w^~)�v��y��yۧu���m�w^~)�v��y��yۧu���q�w^~)�v��y��yۧu���M�w^~)�v��y��yۧu���n�w^~)�v��y��yۧu���L�w^~)�v��y��yۧu����w^~)�v��y��yۧu���@�w^~)�v��y��y�',loading:&��y��yۧu���h�w^~)�v��y��yۧu���Y�w^~)�v��y��yۧu���f',noWord:&��y��yۧu���H�w^~)�v��y��yۧu���c�w^~)�v��y��yۧu���m�w^~)�v��y��yۧu���q�w^~)�v��y��yۧu���M',errNoProfile:&��y��yۧu���j�w^~)�v��y��y� API Kez��y��yۧu���w�w^~)�v��y��yۧu���`�w^~)�v'};
 function renderSettings(){
   var list=getProfiles();var activeId=getActiveId();
   var html='<div class="settings"><div class="toolbar"><button id="btnBack" class="ghost">'+T.back+'</button><span class="title">'+T.apiCfg+'</span><button id="btnAdd">'+T.add+'</button></div>';
@@ -39,13 +50,9 @@ function renderSettings(){
   $('btnBack').onclick=renderMain;
   $('btnAdd').onclick=function(){renderForm(null)};
   var uses=app.querySelectorAll('.btnUse');
-  for(var j=0;j<uses.length;j++){
-    uses[j].onclick=function(){var idx=+this.dataset.i;var l2=getProfiles();if(l2[idx]){setActiveId(l2[idx].id);renderSettings()}};
-  }
+  for(var j=0;j<uses.length;j++){uses[j].onclick=function(){var idx=+this.dataset.i;var l2=getProfiles();if(l2[idx]){setActiveId(l2[idx].id);renderSettings()}};}
   var dels=app.querySelectorAll('.btnDel');
-  for(var k=0;k<dels.length;k++){
-    dels[k].onclick=function(){var idx=+this.dataset.i;if(confirm(T.delConfirm)){var l3=getProfiles();l3.splice(idx,1);saveProfiles(l3);renderSettings()}};
-  }
+  for(var k=0;k<dels.length;k++){dels[k].onclick=function(){var idx=+this.dataset.i;if(confirm(T.delConfirm)){var l3=getProfiles();l3.splice(idx,1);saveProfiles(l3);renderSettings()}};}
 }
 function renderForm(editProfile){
   var p=editProfile||{name:'',apiKey:'',baseUrl:'',model:''};
@@ -86,10 +93,10 @@ function renderError(msg){var el=$('result');if(el)el.innerHTML='<p class="error
 function fetchCandidates(){
   var profile=getActiveProfile();
   if(!profile){renderSettings();return}
-  var wpsApi=window.Application||window.wps;
+  var app=window.Application;
   var sel=null;
-  try{sel=wpsApi.ActiveDocument.Application.Selection}catch(e1){}
-  if(!sel){try{sel=wpsApi.Selection}catch(e2){}}
+  try{sel=app.ActiveDocument.Application.Selection}catch(e1){}
+  if(!sel){try{sel=app.Selection}catch(e2){}}
   if(!sel){renderError('WPS API unavailable');return}
   var word=(sel.Text||'').trim();
   if(!word){renderError(T.noWord);return}
@@ -124,15 +131,13 @@ function showCandidates(candidates){
   html+='</ol>';
   $('result').innerHTML=html;
   var items=app.querySelectorAll('.candidates li');
-  for(var j=0;j<items.length;j++){
-    items[j].onclick=function(){replaceSelection(this.dataset.word)};
-  }
+  for(var j=0;j<items.length;j++){items[j].onclick=function(){replaceSelection(this.dataset.word)};}
 }
 function replaceSelection(newWord){
-  var wpsApi=window.Application||window.wps;
+  var app=window.Application;
   var sel=null;
-  try{sel=wpsApi.ActiveDocument.Application.Selection}catch(e1){}
-  if(!sel){try{sel=wpsApi.Selection}catch(e2){}}
+  try{sel=app.ActiveDocument.Application.Selection}catch(e1){}
+  if(!sel){try{sel=app.Selection}catch(e2){}}
   if(!sel)return;
   var original=sel.Text||'';
   var replacement=newWord;
@@ -143,4 +148,3 @@ function replaceSelection(newWord){
 window.addEventListener('storage',function(e){if(e.key==='PARAPHRASE_FETCH_SIGNAL')fetchCandidates()});
 try{var ch=new BroadcastChannel('wps-paraphrasing');ch.onmessage=function(e){if(e.data&&e.data.type==='paraphrase:fetch')fetchCandidates()}}catch(e){}
 renderMain();
-
