@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jsplugin>
+  <name>WPS-Paraphrasing</name>
+  <version>0.1.0</version>
+  <description>上下文感知的英文同义替换</description>
+  <url type="0" default="true">http://127.0.0.1:5173/</url>
+</jsplugin>

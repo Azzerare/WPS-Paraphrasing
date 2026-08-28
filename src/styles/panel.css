@@ -1,0 +1,11 @@
+body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+.panel { padding: 12px; }
+.hint { color: #666; font-size: 13px; }
+button { padding: 6px 14px; cursor: pointer; }
+.loading { color: #888; font-style: italic; }
+.error { color: #c0392b; }
+.candidates { list-style: none; padding: 0; margin: 8px 0 0; }
+.candidates li { border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; }
+.candidates li:hover { background: #f5f7fa; border-color: #b0c4de; }
+.word { font-weight: 600; font-size: 14px; }
+.reason { font-size: 12px; color: #555; margin-top: 2px; }

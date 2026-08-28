@@ -1,0 +1,18 @@
+{
+  "name": "wps-paraphrasing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WPS 加载项：上下文感知的英文同义替换（直连大模型，无数据库）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "wps-debug": "wpsjs debug",
+    "wps-publish": "wpsjs publish"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "wpsjs": "^2.0.0"
+  }
+}
