@@ -1,0 +1,29 @@
+body{margin:0;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif}
+.panel{padding:12px}
+.hint{color:#666;font-size:13px}
+button{padding:6px 14px;cursor:pointer}
+.loading{color:#888;font-style:italic}
+.error{color:#c0392b}
+.candidates{list-style:none;padding:0;margin:8px 0 0}
+.candidates li{border:1px solid #e0e0e0;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.candidates li:hover{background:#f5f7fa;border-color:#b0c4de}
+.word{font-weight:600;font-size:14px}
+.reason{font-size:12px;color:#555;margin-top:2px}
+.topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.status{font-size:12px;padding:2px 8px;border-radius:4px}
+.status.ok{color:#2e7d32;background:#e8f5e9}
+.ghost{background:none;border:none;color:#4a90d9;cursor:pointer}
+.settings{padding:12px}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.toolbar .title{flex:1;text-align:center;font-weight:600;font-size:14px}
+.form label{display:block;font-size:12px;color:#444;margin-bottom:10px}
+.form input{display:block;width:100%;box-sizing:border-box;padding:6px 8px;margin-top:3px;border:1px solid #ccc;border-radius:4px;font-size:13px}
+.form .form-actions{text-align:right}
+.profile{border:1px solid #e0e0e0;border-radius:6px;padding:8px 10px;margin-bottom:8px}
+.profile.active{border-color:#4a90d9;background:#f0f7ff}
+.profile .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.profile .meta{margin-top:4px;font-size:11px;color:#777}
+.profile .actions{display:flex;gap:4px}
+.profile button{font-size:11px;padding:2px 8px}
+.profile .badge{color:#2e7d32;font-weight:600}
+.form p.hint{margin-top:0}

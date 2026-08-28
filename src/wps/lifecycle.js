@@ -1,69 +1,71 @@
-// WPS addin lifecycle, ribbon and context menu callbacks
+var taskPane = null;
 
-let taskPane = null;
-
-function getWps() {
-  return (typeof window !== "undefined" && window.wps) ? window.wps : null;
-}
-
-export function onAddinLoad() {
-  if (getWps()) {
-    console.log("WPS JSAPI ready");
-  }
-}
-
-export function onShowPane() {
+function onAddinLoad(ribbonUI) {
   try {
-    const wps = getWps();
-    if (!wps) return;
+    var app = window.Application;
+    if (app && typeof app.ribbonUI !== 'object') app.ribbonUI = ribbonUI;
+  } catch (e) {}
+  return true;
+}
+
+function onShowPane() {
+  try {
+    var app = window.Application;
+    if (!app) return;
     if (!taskPane) {
-      taskPane = wps.CreateTaskPane(location.origin + "/index.html");
+      taskPane = app.CreateTaskPane(location.origin + '/taskpane.html');
+      if (taskPane && taskPane.ID !== undefined) {
+        app.PluginStorage.setItem('taskpane_id', taskPane.ID);
+      }
+    } else {
+      var paneId = app.PluginStorage.getItem('taskpane_id');
+      if (paneId) { taskPane = app.GetTaskPane(paneId); }
     }
-    if (taskPane && taskPane.Show) {
-      taskPane.Show();
+    if (taskPane) {
+      if (taskPane.Visible !== undefined) taskPane.Visible = true;
+      else if (taskPane.Show) taskPane.Show();
     }
   } catch (err) {
-    console.error("onShowPane error:", err);
+    console.error('onShowPane error:', err);
   }
 }
 
-export function onGetImage() {
-  return "";
-}
-
-// ---- context menu ----
+function onGetImage() { return ''; }
 
 function isEnglishSelection() {
   try {
-    const wps = getWps();
-    if (!wps || !wps.Application) return false;
-    const text = (wps.Application.Selection && wps.Application.Selection.Text || "").trim();
+    var app = window.Application;
+    if (!app) return false;
+    var sel = null;
+    try { sel = app.ActiveDocument.Application.Selection; } catch (e1) {}
+    if (!sel) { try { sel = app.Selection; } catch (e2) {} }
+    var text = (sel && sel.Text || '').trim();
     if (!text || text.length > 60) return false;
     return /^[A-Za-z][A-Za-z'\- ]*$/.test(text);
-  } catch (e) {
-    return false;
-  }
+  } catch (e) { return false; }
 }
 
-export function onGetContextMenuVisible() {
-  return isEnglishSelection();
-}
+function onGetContextMenuVisible() { return isEnglishSelection(); }
+function onGetSeparatorVisible() { return isEnglishSelection(); }
 
-export function onGetSeparatorVisible() {
-  return isEnglishSelection();
-}
-
-export function onContextMenuParaphrase() {
+function onContextMenuParaphrase() {
   try {
     onShowPane();
-    const channel = new BroadcastChannel("wps-paraphrasing");
-    channel.postMessage({ type: "paraphrase:fetch" });
-    channel.close();
+    var ch = new BroadcastChannel('wps-paraphrasing');
+    ch.postMessage({ type: 'paraphrase:fetch' });
+    ch.close();
   } catch (e) {
-    try {
-      localStorage.setItem("PARAPHRASE_FETCH_SIGNAL", String(Date.now()));
-    } catch (e2) {
-      console.error("onContextMenuParaphrase error:", e2);
-    }
+    try { localStorage.setItem('PARAPHRASE_FETCH_SIGNAL', String(Date.now())); } catch (e2) { console.error('ctx error', e2); }
   }
 }
+
+// Expose as globals for WPS ribbon callbacks
+window.OnAddinLoad = onAddinLoad;
+window.OnShowPane = onShowPane;
+window.OnGetImage = onGetImage;
+window.OnGetContextMenuVisible = onGetContextMenuVisible;
+window.OnGetSeparatorVisible = onGetSeparatorVisible;
+window.OnContextMenuParaphrase = onContextMenuParaphrase;
+
+// Named exports for module imports
+export { onAddinLoad, onShowPane, onGetImage, onGetContextMenuVisible, onGetSeparatorVisible, onContextMenuParaphrase };
