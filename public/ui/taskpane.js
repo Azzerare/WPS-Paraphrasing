@@ -1,3 +1,11 @@
+document.addEventListener('DOMContentLoaded', function() {
+  var info = 'DIAG: body=' + document.body.offsetWidth + 'x' + document.body.offsetHeight + ' scrollY=' + window.scrollY + ' app=' + !!document.getElementById('app');
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;background:yellow;padding:5px;z-index:99999;font-size:12px;';
+  d.textContent = info;
+  document.body.appendChild(d);
+  console.log(info);
+});
 var app = document.getElementById('app');
 var DEFAULT_BASE_URL = 'https://api.deepseek.com/v1';
 var DEFAULT_MODEL = 'deepseek-chat';
