@@ -3,7 +3,7 @@
     <tabs>
       <tab id="ParaphrasingTab" label="同义替换">
         <group id="ParaphrasingGroup" label="改写">
-          <button id="btnShowPane" label="同义候选" onAction="OnShowPane" size="large" getImage="OnGetImage"/>
+          <button id="btnShowPane" label="设置" onAction="OnShowPane" size="large" getImage="OnGetImage"/>
         </group>
       </tab>
     </tabs>

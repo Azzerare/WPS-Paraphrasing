@@ -20,13 +20,24 @@ export function renderMain() {
         <span class="status ${statusClass}">${statusText}</span>
         <button id="btnSettings" class="ghost">⚙ 设置</button>
       </div>
-      <p class="hint">在文档中选中一个英文单词，然后点击下方按钮。</p>
-      <button id="btnFetch">获取同义候选</button>
+      <p class="hint">在文档中选中一个英文单词，右键点击「同义替换」开始。</p>
       <div id="result"></div>
     </div>`;
 
   document.getElementById("btnSettings").addEventListener("click", () => openSettings(renderMain));
-  document.getElementById("btnFetch").addEventListener("click", fetchCandidates);
+  if (!profile) {
+    const setupBtn = document.createElement("button");
+    setupBtn.textContent = "配置 API Key";
+    setupBtn.style.marginTop = "12px";
+    setupBtn.style.padding = "10px 20px";
+    setupBtn.style.fontSize = "14px";
+    setupBtn.style.background = "#4a90d9";
+    setupBtn.style.color = "#fff";
+    setupBtn.style.border = "none";
+    setupBtn.style.borderRadius = "6px";
+    setupBtn.addEventListener("click", () => openSettings(renderMain));
+    document.querySelector(".panel").appendChild(setupBtn);
+  }
   window.addEventListener("storage", e => {
     if (e.key === "PARAPHRASE_FETCH_SIGNAL") {
       fetchCandidates();
