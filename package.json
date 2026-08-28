@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "wps-debug": "wpsjs debug",
+    "wps-debug": "wpsjs debug --debug",
     "wps-publish": "wpsjs publish"
   },
   "devDependencies": {
