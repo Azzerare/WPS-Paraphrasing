@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge chrome=1"/>
+  <meta charset="UTF-8"/>
+  <title>&#21516;&#20041;&#26367;&#25442;</title>
+  <style>
+    body{margin:0;padding:12px;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#fff}
+    .word{font-weight:600;font-size:15px;margin-bottom:8px}
+    .status{color:#888;font-style:italic;font-size:13px}
+    .error{color:#c0392b;font-size:13px}
+    .cand{border:1px solid #e0e0e0;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+    .cand:hover{background:#f0f7ff;border-color:#4a90d9}
+    .cand .w{font-weight:600;font-size:14px}
+    .cand .r{font-size:12px;color:#555;margin-top:2px}
+    .keyform label{display:block;font-size:12px;color:#444;margin:10px 0}
+    .keyform input{display:block;width:100%;box-sizing:border-box;padding:6px 8px;margin-top:3px;border:1px solid #ccc;border-radius:4px}
+    .keyform button{padding:6px 16px;background:#4a90d9;color:#fff;border:none;border-radius:4px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+var root = document.getElementById('root');
+var DEFAULT_URL = 'https://api.deepseek.com/v1';
+var DEFAULT_MODEL = 'deepseek-chat';
+var T = {};
+T.generating='\u6b63\u5728\u751f\u6210\u5019\u9009\u8bcd\u2026';
+T.noWord='\u672a\u68c0\u6d4b\u5230\u9009\u4e2d\u7684\u5355\u8bcd';
+T.noProfile='\u8bf7\u8f93\u5165 API Key\uff08DeepSeek sk-...\uff09\uff1a';
+T.save='\u4fdd\u5b58\u5e76\u7ee7\u7eed';
+T.title1='\u4e3a \u300c';
+T.title2='\u300d \u9009\u62e9\u66ff\u6362\u8bcd\uff1a';
+T.fail='\u8bf7\u6c42\u5931\u8d25: ';
+T.parse='\u65e0\u6cd5\u89e3\u6790\u54cd\u5e94';
+T.replaced='\u5df2\u66ff\u6362\u4e3a: ';
+T.networkFail='\u7f51\u7edc\u8bf7\u6c42\u5931\u8d25';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function getProfile(){
+  try{
+    var raw=localStorage.getItem('PARAPHRASE_PROFILES');
+    var list=raw?JSON.parse(raw):[];
+    if(!Array.isArray(list)||list.length===0)return null;
+    var id=localStorage.getItem('PARAPHRASE_ACTIVE_PROFILE')||'';
+    for(var i=0;i<list.length;i++){if(list[i].id===id)return list[i];}
+    return list[0];
+  }catch(e){return null}
+}
+function saveProfile(key){
+  var list=[];
+  try{var raw=localStorage.getItem('PARAPHRASE_PROFILES');list=raw?JSON.parse(raw):[]}catch(e){list=[]}
+  if(!Array.isArray(list))list=[];
+  var id='p_'+Date.now();
+  list.push({id:id,name:'default',apiKey:key,baseUrl:DEFAULT_URL,model:DEFAULT_MODEL});
+  localStorage.setItem('PARAPHRASE_PROFILES',JSON.stringify(list));
+  localStorage.setItem('PARAPHRASE_ACTIVE_PROFILE',id);
+  return {id:id,name:'default',apiKey:key,baseUrl:DEFAULT_URL,model:DEFAULT_MODEL};
+}
+function getSelText(){
+  try{var app=window.Application;return app.ActiveDocument.Application.Selection.Text||''}catch(e){}
+  try{var app2=window.Application;return app2.Selection.Text||''}catch(e2){}
+  return '';
+}
+function renderKeyForm(){
+  root.innerHTML='<div class=keyform><p>'+T.noProfile+'</p><label>API Key<input id=keyInput type=password></label><button id=btnSave>'+T.save+'</button></div>';
+  document.getElementById('btnSave').onclick=function(){
+    var k=document.getElementById('keyInput').value.trim();
+    if(!k)return;
+    saveProfile(k);
+    start();
+  };
+}
+function renderGenerating(){root.innerHTML='<p class=status>'+T.generating+'</p>';}
+function renderError(msg){root.innerHTML='<p class=error>'+esc(msg)+'</p>';}
+function renderCandidates(word, candidates){
+  var html='<div class=word>'+T.title1+esc(word)+T.title2+'</div>';
+  for(var i=0;i<candidates.length;i++){
+    html+='<div class=cand data-w="'+esc(candidates[i].word)+'"><div class=w>'+esc(candidates[i].word)+'</div><div class=r>'+esc(candidates[i].reason||'')+'</div></div>';
+  }
+  root.innerHTML=html;
+  var items=root.querySelectorAll('.cand');
+  for(var j=0;j<items.length;j++){
+    items[j].onclick=function(){replaceWord(this.getAttribute('data-w'))};
+  }
+}
+function replaceWord(newWord){
+  try{
+    var app=window.Application;
+    var sel=app.ActiveDocument.Application.Selection;
+    var original=sel.Text||'';
+    var replacement=newWord;
+    if(original&&original===original.toUpperCase()&&original.length>1)replacement=newWord.toUpperCase();
+    else if(original&&/^[A-Z]/.test(original))replacement=newWord.charAt(0).toUpperCase()+newWord.slice(1);
+    sel.TypeText(replacement);
+    root.innerHTML='<p class=status>'+T.replaced+esc(newWord)+'</p>';
+    setTimeout(function(){window.close()},800);
+  }catch(e){renderError('replace fail: '+e.message)}
+}
+function start(){
+  var word=getSelText().trim();
+  if(!word){renderError(T.noWord);return}
+  var profile=getProfile();
+  if(!profile){renderKeyForm();return}
+  renderGenerating();
+  var sentence='';
+  try{sentence=window.Application.ActiveDocument.Application.Selection.Paragraphs(1).Range.Text||''}catch(e){}
+  var sysPrompt='You are an English writing assistant. Given a word and its sentence, recommend 5 contextually appropriate English synonyms. Same part of speech. Exclude the original and trivial variants. Sort by contextual fit. Give 1 short Chinese reason each. Output strictly a JSON array of {word, reason} objects, nothing else.';
+  var userPrompt='Word: '+word+'\nSentence: '+(sentence.trim()||'N/A');
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',profile.baseUrl.replace(/\/$/,'')+'/chat/completions',true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.setRequestHeader('Authorization','Bearer '+profile.apiKey);
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(xhr.status!==200){renderError(T.fail+'HTTP '+xhr.status);return}
+    try{
+      var data=JSON.parse(xhr.responseText);
+      var raw=(data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+      var candidates;
+      try{candidates=JSON.parse(raw)}catch(pe){
+        var m=raw.match(/\[[\s\S]*\]/);
+        if(!m)throw new Error(T.parse);
+        candidates=JSON.parse(m[0]);
+      }
+      if(!Array.isArray(candidates)||candidates.length===0)throw new Error(T.parse);
+      renderCandidates(word,candidates.slice(0,5));
+    }catch(err){renderError(T.fail+(err.message||String(err)))}
+  };
+  xhr.send(JSON.stringify({model:profile.model,messages:[{role:'system',content:sysPrompt},{role:'user',content:userPrompt}],temperature:0.3}));
+}
+start();

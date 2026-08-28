@@ -55,74 +55,19 @@ function onShowPane() {
 
 function onContextMenuParaphrase() {
   try {
-    var sel = getSelection();
-    var word = ((sel && sel.Text) || '').trim();
-    if (!word) { alert(MSG.selectFirst); return; }
-    var profile = getActiveProfile();
-    if (!profile) {
-      var key = prompt(MSG.noKey, '');
-      if (!key) return;
-      var list = getProfiles();
-      var id = 'p_' + Date.now();
-      list.push({ id: id, name: 'default', apiKey: key.trim(), baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' });
-      localStorage.setItem('PARAPHRASE_PROFILES', JSON.stringify(list));
-      localStorage.setItem('PARAPHRASE_ACTIVE_PROFILE', id);
-      profile = list[list.length - 1];
+    var app = window.Application;
+    if (!app || !app.ShowDialog) {
+      return;
     }
-    var sentence = '';
-    try { sentence = sel.Paragraphs(1).Range.Text || ''; } catch (e3) {}
-    var userPrompt = 'Word: ' + word + '\nSentence: ' + (sentence.trim() || 'N/A');
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', profile.baseUrl.replace(/\/$/, '') + '/chat/completions', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + profile.apiKey);
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState !== 4) return;
-      try {
-        if (xhr.status !== 200) { alert(MSG.llmFail + xhr.status); return; }
-        var data = JSON.parse(xhr.responseText);
-        var raw = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-        var candidates;
-        try { candidates = JSON.parse(raw); }
-        catch (pe) {
-          var m = raw.match(/\[[\s\S]*\]/);
-          if (!m) throw new Error(MSG.cannotParse);
-          candidates = JSON.parse(m[0]);
-        }
-        if (!Array.isArray(candidates) || candidates.length === 0) throw new Error(MSG.noCandidates);
-        var max = Math.min(5, candidates.length);
-        var msg = MSG.foundFor + word + MSG.closeQuote + '\n\n';
-        for (var i = 0; i < max; i++) {
-          msg += (i + 1) + '. ' + candidates[i].word + '  ' + (candidates[i].reason || '') + '\n';
-        }
-        msg += MSG.enterNum + max + MSG.toReplace;
-        var ans = prompt(msg, '1');
-        if (ans === null) return;
-        var n = parseInt(ans, 10);
-        if (isNaN(n) || n < 1 || n > max) { alert(MSG.invalidNum); return; }
-        var chosen = candidates[n - 1].word;
-        var sel2 = getSelection();
-        if (!sel2) { alert(MSG.cannotAccessSel); return; }
-        var original = sel2.Text || '';
-        var replacement = chosen;
-        if (original && original === original.toUpperCase() && original.length > 1) replacement = chosen.toUpperCase();
-        else if (original && /^[A-Z]/.test(original)) replacement = chosen.charAt(0).toUpperCase() + chosen.slice(1);
-        sel2.TypeText(replacement);
-      } catch (err) {
-        alert(MSG.processFail + (err.message || String(err)));
-      }
-    };
-    alert(MSG.generating);
-    xhr.send(JSON.stringify({
-      model: profile.model,
-      messages: [
-        { role: 'system', content: 'You are an English writing assistant. Given a word and its sentence, recommend 5 contextually appropriate English synonyms. Same part of speech. Exclude the original and trivial variants. Sort by contextual fit. Give 1 short Chinese reason each. Output strictly a JSON array of {word, reason} objects, nothing else.' },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3
-    }));
+    var w = 420;
+    var h = 520;
+    try {
+      w = Math.round(420 * window.devicePixelRatio);
+      h = Math.round(520 * window.devicePixelRatio);
+    } catch (e0) {}
+    app.ShowDialog(location.origin + '/dialog.html', 'Paraphrase', w, h, false);
   } catch (e) {
-    alert(MSG.error + (e.message || String(e)));
+    // silent
   }
 }
 
