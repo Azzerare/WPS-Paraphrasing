@@ -9,15 +9,15 @@ const app = document.getElementById("app");
 
 export function renderMain() {
   const profile = getActiveProfile();
-  const statusText = profile
-    ? `当前配置：${profile.name}`
-    : `未配置 API Key`;
-  const statusClass = profile ? "ok" : "warn";
+  if (!profile) {
+    openSettings(renderMain);
+    return;
+  }
 
   app.innerHTML = `
     <div class="panel">
       <div class="topbar">
-        <span class="status ${statusClass}">${statusText}</span>
+        <span class="status ok">当前配置：${profile.name}</span>
         <button id="btnSettings" class="ghost">⚙ 设置</button>
       </div>
       <p class="hint">在文档中选中一个英文单词，右键点击「同义替换」开始。</p>
@@ -25,19 +25,6 @@ export function renderMain() {
     </div>`;
 
   document.getElementById("btnSettings").addEventListener("click", () => openSettings(renderMain));
-  if (!profile) {
-    const setupBtn = document.createElement("button");
-    setupBtn.textContent = "配置 API Key";
-    setupBtn.style.marginTop = "12px";
-    setupBtn.style.padding = "10px 20px";
-    setupBtn.style.fontSize = "14px";
-    setupBtn.style.background = "#4a90d9";
-    setupBtn.style.color = "#fff";
-    setupBtn.style.border = "none";
-    setupBtn.style.borderRadius = "6px";
-    setupBtn.addEventListener("click", () => openSettings(renderMain));
-    document.querySelector(".panel").appendChild(setupBtn);
-  }
   window.addEventListener("storage", e => {
     if (e.key === "PARAPHRASE_FETCH_SIGNAL") {
       fetchCandidates();
