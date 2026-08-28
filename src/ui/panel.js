@@ -27,6 +27,21 @@ export function renderMain() {
 
   document.getElementById("btnSettings").addEventListener("click", () => openSettings(renderMain));
   document.getElementById("btnFetch").addEventListener("click", fetchCandidates);
+  window.addEventListener("storage", e => {
+    if (e.key === "PARAPHRASE_FETCH_SIGNAL") {
+      fetchCandidates();
+    }
+  });
+  try {
+    const channel = new BroadcastChannel("wps-paraphrasing");
+    channel.onmessage = e => {
+      if (e.data && e.data.type === "paraphrase:fetch") {
+        fetchCandidates();
+      }
+    };
+  } catch (e) {
+    // BroadcastChannel 不可用时静默，storage 事件已覆盖大部分场景
+  }
 }
 
 function renderLoading() {

@@ -1,16 +1,63 @@
-// WPS 加载项生命周期与 JSAPI 桥接
+// WPS 加载项生命周期、Ribbon 回调与右键菜单回调
+
+let taskPane = null;
+
+function getWps() {
+  return (typeof window !== "undefined" && window.wps) ? window.wps : null;
+}
 
 export function onAddinLoad() {
-  // wpsjs debug 时 WPS 会向 window 注入 wps 对象
-  if (typeof window.wps !== "undefined") {
+  if (getWps()) {
     console.log("WPS JSAPI ready");
   }
 }
 
 export function onShowPane() {
-  // 由 ribbon.xml 的 OnShowPane 触发，打开任务窗格
-  if (typeof window.wps !== "undefined" && window.wps.Enum) {
-    const pane = window.wps.CreateTaskPane("./index.html");
-    if (pane && pane.Show) pane.Show();
+  const wps = getWps();
+  if (!wps) return;
+  if (!taskPane) {
+    taskPane = wps.CreateTaskPane("./index.html");
+  }
+  if (taskPane && taskPane.Show) {
+    taskPane.Show();
+  }
+}
+
+export function onGetImage() {
+  return "";
+}
+
+// ---- 右键菜单 ----
+
+function isEnglishSelection() {
+  try {
+    const wps = getWps();
+    if (!wps || !wps.Application) return false;
+    const text = (wps.Application.Selection && wps.Application.Selection.Text || "").trim();
+    if (!text || text.length > 60) return false;
+    return /^[A-Za-z][A-Za-z'\- ]*$/.test(text);
+  } catch (e) {
+    return false;
+  }
+}
+
+export function onGetContextMenuVisible() {
+  return isEnglishSelection();
+}
+
+export function onGetSeparatorVisible() {
+  return isEnglishSelection();
+}
+
+export function onContextMenuParaphrase() {
+  onShowPane();
+  // 通过 BroadcastChannel 通知任务窗格拉取候选词（同源所有上下文可收）
+  try {
+    const channel = new BroadcastChannel("wps-paraphrasing");
+    channel.postMessage({ type: "paraphrase:fetch" });
+    channel.close();
+  } catch (e) {
+    // BroadcastChannel 不可用时兜底 localStorage（跨 window 触发 storage 事件）
+    localStorage.setItem("PARAPHRASE_FETCH_SIGNAL", String(Date.now()));
   }
 }

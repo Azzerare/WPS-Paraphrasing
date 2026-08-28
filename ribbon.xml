@@ -8,4 +8,10 @@
       </tab>
     </tabs>
   </ribbon>
+  <contextMenus>
+    <contextMenu idMso="ContextMenuText">
+      <menuSeparator id="ParaphraseSeparator" getVisible="OnGetSeparatorVisible"/>
+      <button id="btnParaphraseCtx" label="同义替换" onAction="OnContextMenuParaphrase" getVisible="OnGetContextMenuVisible"/>
+    </contextMenu>
+  </contextMenus>
 </customUI>
