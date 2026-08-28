@@ -34,15 +34,10 @@ function getSelection() {
 }
 
 function onGetContextMenuVisible() {
-  try {
-    var text = (getSelection() ? getSelection().Text : '') || '';
-    text = text.trim();
-    if (!text || text.length > 60) return false;
-    return /^[A-Za-z][A-Za-z'\- ]*$/.test(text);
-  } catch (e) { return false; }
+  return true;
 }
 
-function onGetSeparatorVisible() { return onGetContextMenuVisible(); }
+function onGetSeparatorVisible() { return true; }
 function onGetImage() { return ''; }
 function onShowPane() {
   try {
