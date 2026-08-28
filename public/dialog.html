@@ -19,7 +19,8 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="static-check" style="padding:20px;font-size:14px;color:#333">Loading... (if you see this, HTML renders; if JS works, this will be replaced)</div>
+  <script>document.write('<div style="position:fixed;top:0;right:0;background:orange;padding:3px;font-size:10px">JS RUNNING</div>');</script><div id="root"></div>
   <script>
 var root = document.getElementById('root');
 var DEFAULT_URL = 'https://api.deepseek.com/v1';
