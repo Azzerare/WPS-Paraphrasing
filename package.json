@@ -5,7 +5,7 @@
 	"description": "WPS 加载项：上下文感知的英文同义替换（直连大模型，无数据库）",
 	"type": "module",
 	"scripts": {
-		"dev": "vite --port 3889",
+		"dev": "vite --port 3890",
 		"build": "vite build",
 		"preview": "vite preview",
 		"wps-debug": "wpsjs debug --debug",
