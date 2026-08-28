@@ -1,4 +1,5 @@
-var taskPane = null;
+// WPS addin lifecycle - dialog-based paraphrase flow (no taskpane)
+var MSG = {"selectFirst":"\\u8bf7\\u5148\\u9009\\u4e2d\\u4e00\\u4e2a\\u82f1\\u6587\\u5355\\u8bcd","noKey":"\\u5c1a\\u672a\\u914d\\u7f6e API Key\\u3002\\n\\u8bf7\\u8f93\\u5165 API Key\\uff08DeepSeek sk-...\\uff09\\uff1a","generating":"\\u6b63\\u5728\\u751f\\u6210\\u5019\\u9009\\u8bcd\\uff0c\\u8bf7\\u7a0d\\u5019\\u2026","llmFail":"\\u8bf7\\u6c42\\u5931\\u8d25 HTTP ","cannotParse":"\\u65e0\\u6cd5\\u89e3\\u6790 LLM \\u54cd\\u5e94","noCandidates":"LLM \\u672a\\u8fd4\\u56de\\u5019\\u9009\\u8bcd","foundFor":"\\u4e3a \\u300c","closeQuote":"\\u300d \\u627e\\u5230\\u4ee5\\u4e0b\\u5019\\u9009\\u8bcd\\uff1a","enterNum":"\\n\\n\\u8f93\\u5165\\u7f16\\u53f7\\uff081-","toReplace":"\\uff09\\u8fdb\\u884c\\u66ff\\u6362\\uff0c\\u5176\\u4ed6\\u53d6\\u6d88\\uff1a","invalidNum":"\\u65e0\\u6548\\u7f16\\u53f7\\uff0c\\u5df2\\u53d6\\u6d88","cannotAccessSel":"\\u65e0\\u6cd5\\u8bbf\\u95ee\\u9009\\u533a","processFail":"\\u5904\\u7406\\u5931\\u8d25: ","error":"\\u540c\\u4e49\\u66ff\\u6362\\u51fa\\u9519: "};
 
 function onAddinLoad(ribbonUI) {
   try {
@@ -8,58 +9,123 @@ function onAddinLoad(ribbonUI) {
   return true;
 }
 
-function onShowPane() {
+function getProfiles() {
   try {
-    var app = window.Application;
-    if (!app) return;
-    if (!taskPane) {
-      taskPane = app.CreateTaskPane(location.origin + '/taskpane.html');
-      if (taskPane && taskPane.ID !== undefined) {
-        app.PluginStorage.setItem('taskpane_id', taskPane.ID);
-      }
-    } else {
-      var paneId = app.PluginStorage.getItem('taskpane_id');
-      if (paneId) { taskPane = app.GetTaskPane(paneId); }
-    }
-    if (taskPane) {
-      if (taskPane.Visible !== undefined) taskPane.Visible = true;
-      else if (taskPane.Show) taskPane.Show();
-    }
-  } catch (err) {
-    console.error('onShowPane error:', err);
-  }
+    var raw = localStorage.getItem('PARAPHRASE_PROFILES');
+    var list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
 }
 
-function onGetImage() { return ''; }
-
-function isEnglishSelection() {
+function getActiveProfile() {
   try {
-    var app = window.Application;
-    if (!app) return false;
-    var sel = null;
-    try { sel = app.ActiveDocument.Application.Selection; } catch (e1) {}
-    if (!sel) { try { sel = app.Selection; } catch (e2) {} }
-    var text = (sel && sel.Text || '').trim();
+    var id = localStorage.getItem('PARAPHRASE_ACTIVE_PROFILE') || '';
+    var list = getProfiles();
+    for (var i = 0; i < list.length; i++) { if (list[i].id === id) return list[i]; }
+    return list.length === 1 ? list[0] : null;
+  } catch (e) { return null; }
+}
+
+function getSelection() {
+  var app = window.Application;
+  try { return app.ActiveDocument.Application.Selection; } catch (e1) {}
+  try { return app.Selection; } catch (e2) {}
+  return null;
+}
+
+function onGetContextMenuVisible() {
+  try {
+    var text = (getSelection() ? getSelection().Text : '') || '';
+    text = text.trim();
     if (!text || text.length > 60) return false;
     return /^[A-Za-z][A-Za-z'\- ]*$/.test(text);
   } catch (e) { return false; }
 }
 
-function onGetContextMenuVisible() { return isEnglishSelection(); }
-function onGetSeparatorVisible() { return isEnglishSelection(); }
+function onGetSeparatorVisible() { return onGetContextMenuVisible(); }
+function onGetImage() { return ''; }
+function onShowPane() {
+  try {
+    var app = window.Application;
+    if (app && app.ShowDialog) {
+      app.ShowDialog(location.origin + '/taskpane.html', 'Settings', 420, 520, false);
+    }
+  } catch (e) {}
+}
 
 function onContextMenuParaphrase() {
   try {
-    onShowPane();
-    var ch = new BroadcastChannel('wps-paraphrasing');
-    ch.postMessage({ type: 'paraphrase:fetch' });
-    ch.close();
+    var sel = getSelection();
+    var word = ((sel && sel.Text) || '').trim();
+    if (!word) { alert(MSG.selectFirst); return; }
+    var profile = getActiveProfile();
+    if (!profile) {
+      var key = prompt(MSG.noKey, '');
+      if (!key) return;
+      var list = getProfiles();
+      var id = 'p_' + Date.now();
+      list.push({ id: id, name: 'default', apiKey: key.trim(), baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' });
+      localStorage.setItem('PARAPHRASE_PROFILES', JSON.stringify(list));
+      localStorage.setItem('PARAPHRASE_ACTIVE_PROFILE', id);
+      profile = list[list.length - 1];
+    }
+    var sentence = '';
+    try { sentence = sel.Paragraphs(1).Range.Text || ''; } catch (e3) {}
+    var userPrompt = 'Word: ' + word + '\nSentence: ' + (sentence.trim() || 'N/A');
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', profile.baseUrl.replace(/\/$/, '') + '/chat/completions', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + profile.apiKey);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState !== 4) return;
+      try {
+        if (xhr.status !== 200) { alert(MSG.llmFail + xhr.status); return; }
+        var data = JSON.parse(xhr.responseText);
+        var raw = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+        var candidates;
+        try { candidates = JSON.parse(raw); }
+        catch (pe) {
+          var m = raw.match(/\[[\s\S]*\]/);
+          if (!m) throw new Error(MSG.cannotParse);
+          candidates = JSON.parse(m[0]);
+        }
+        if (!Array.isArray(candidates) || candidates.length === 0) throw new Error(MSG.noCandidates);
+        var max = Math.min(5, candidates.length);
+        var msg = MSG.foundFor + word + MSG.closeQuote + '\n\n';
+        for (var i = 0; i < max; i++) {
+          msg += (i + 1) + '. ' + candidates[i].word + '  ' + (candidates[i].reason || '') + '\n';
+        }
+        msg += MSG.enterNum + max + MSG.toReplace;
+        var ans = prompt(msg, '1');
+        if (ans === null) return;
+        var n = parseInt(ans, 10);
+        if (isNaN(n) || n < 1 || n > max) { alert(MSG.invalidNum); return; }
+        var chosen = candidates[n - 1].word;
+        var sel2 = getSelection();
+        if (!sel2) { alert(MSG.cannotAccessSel); return; }
+        var original = sel2.Text || '';
+        var replacement = chosen;
+        if (original && original === original.toUpperCase() && original.length > 1) replacement = chosen.toUpperCase();
+        else if (original && /^[A-Z]/.test(original)) replacement = chosen.charAt(0).toUpperCase() + chosen.slice(1);
+        sel2.TypeText(replacement);
+      } catch (err) {
+        alert(MSG.processFail + (err.message || String(err)));
+      }
+    };
+    alert(MSG.generating);
+    xhr.send(JSON.stringify({
+      model: profile.model,
+      messages: [
+        { role: 'system', content: 'You are an English writing assistant. Given a word and its sentence, recommend 5 contextually appropriate English synonyms. Same part of speech. Exclude the original and trivial variants. Sort by contextual fit. Give 1 short Chinese reason each. Output strictly a JSON array of {word, reason} objects, nothing else.' },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.3
+    }));
   } catch (e) {
-    try { localStorage.setItem('PARAPHRASE_FETCH_SIGNAL', String(Date.now())); } catch (e2) { console.error('ctx error', e2); }
+    alert(MSG.error + (e.message || String(e)));
   }
 }
 
-// Expose as globals for WPS ribbon callbacks
 window.OnAddinLoad = onAddinLoad;
 window.OnShowPane = onShowPane;
 window.OnGetImage = onGetImage;
@@ -67,5 +133,4 @@ window.OnGetContextMenuVisible = onGetContextMenuVisible;
 window.OnGetSeparatorVisible = onGetSeparatorVisible;
 window.OnContextMenuParaphrase = onContextMenuParaphrase;
 
-// Named exports for module imports
 export { onAddinLoad, onShowPane, onGetImage, onGetContextMenuVisible, onGetSeparatorVisible, onContextMenuParaphrase };
