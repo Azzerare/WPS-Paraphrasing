@@ -147,4 +147,6 @@ function replaceSelection(newWord){
 }
 window.addEventListener('storage',function(e){if(e.key==='PARAPHRASE_FETCH_SIGNAL')fetchCandidates()});
 try{var ch=new BroadcastChannel('wps-paraphrasing');ch.onmessage=function(e){if(e.data&&e.data.type==='paraphrase:fetch')fetchCandidates()}}catch(e){}
-renderMain();
+
+try { renderMain(); } catch (e) { document.body.innerHTML = '<pre style="color:red;padding:10px">Error: ' + (e.message || e) + '\n' + (e.stack || '') + '</pre>'; }
+window.onerror = function(msg, src, line, col) { document.body.innerHTML = '<pre style="color:red;padding:10px">JS Error: ' + msg + ' at ' + src + ' :' + line + ':' + col + '</pre>'; };
