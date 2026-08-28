@@ -1,4 +1,4 @@
-// WPS addin lifecycle, ribbon and context menu callbacks
+// WPS"��y��yۧu���}�w^~)�v��y��yۧu���}�w^~)�v��y��yۧu���ARibbon"��y��yۧu���C�w^~)�v��y��yۧu���n�w^~)�v��y��yۧu���^�w^~)�w
 
 let taskPane = null;
 
@@ -31,7 +31,7 @@ export function onGetImage() {
   return "";
 }
 
-// ---- context menu ----
+// ----"��y��yۧu���n�w^~)�v��y��y� ----
 
 function isEnglishSelection() {
   try {
