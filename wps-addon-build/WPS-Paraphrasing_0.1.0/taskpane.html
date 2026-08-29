@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge chrome=1"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>&#21516;&#20041;&#26367;&#25442;</title>
+  <style>
+    body{margin:0;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif}
+    .panel{padding:12px}
+    .hint{color:#666;font-size:13px}
+    button{padding:6px 14px;cursor:pointer}
+    .loading{color:#888;font-style:italic}
+    .error{color:#c0392b}
+    .candidates{list-style:none;padding:0;margin:8px 0 0}
+    .candidates li{border:1px solid #e0e0e0;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+    .candidates li:hover{background:#f5f7fa;border-color:#b0c4de}
+    .word{font-weight:600;font-size:14px}
+    .reason{font-size:12px;color:#555;margin-top:2px}
+    .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .status{font-size:12px;padding:2px 8px;border-radius:4px}
+    .status.ok{color:#2e7d32;background:#e8f5e9}
+    .ghost{background:none;border:none;color:#4a90d9;cursor:pointer}
+    .settings{padding:12px}
+    .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .toolbar .title{flex:1;text-align:center;font-weight:600;font-size:14px}
+    .settings label{display:block;font-size:12px;color:#444;margin-bottom:10px}
+    .settings input{display:block;width:100%;box-sizing:border-box;padding:6px 8px;margin-top:3px;border:1px solid #ccc;border-radius:4px;font-size:13px}
+    .form-actions{text-align:right}
+    .profile{border:1px solid #e0e0e0;border-radius:6px;padding:8px 10px;margin-bottom:8px}
+    .profile.active{border-color:#4a90d9;background:#f0f7ff}
+    .profile .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .profile .meta{margin-top:4px;font-size:11px;color:#777}
+    .profile .actions{display:flex;gap:4px}
+    .profile button{font-size:11px;padding:2px 8px}
+    .profile .badge{color:#2e7d32;font-weight:600}
+    .model{font-size:11px;color:#888}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var info = 'DIAG: body=' + document.body.offsetWidth + 'x' + document.body.offsetHeight + ' scrollY=' + window.scrollY + ' app=' + !!document.getElementById('app');
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;background:yellow;padding:5px;z-index:99999;font-size:12px;';
+  d.textContent = info;
+  document.body.appendChild(d);
+  console.log(info);
+});
+var app = document.getElementById('app');
+var DEFAULT_BASE_URL = 'https://api.deepseek.com/v1';
+var DEFAULT_MODEL = 'deepseek-chat';
+var T = {};
+T.title='\u540c\u4e49\u66ff\u6362';T.back='\u2190 \u8fd4\u56de';T.add='+ \u65b0\u589e';
+T.apiCfg='API Key \u914d\u7f6e';T.noCfg='\u8fd8\u6ca1\u6709\u914d\u7f6e\uff0c\u70b9\u4e0b\u65b9\u65b0\u589e\u3002';
+T.name='\u540d\u79f0';T.namePh='\u5982\uff1aDeepSeek';T.apiKey='API Key';
+T.save='\u4fdd\u5b58';T.nameReq='\u540d\u79f0\u548c API Key \u4e0d\u80fd\u4e3a\u7a7a';
+T.use='\u542f\u7528';T.edit='\u7f16\u8f91';T.del='\u5220\u9664';T.using='\u4f7f\u7528\u4e2d';
+T.delConfirm='\u786e\u5b9a\u5220\u9664\uff1f';T.curCfg='\u5f53\u524d\u914d\u7f6e\uff1a';
+T.settings='\u8bbe\u7f6e';
+T.hint='\u5728\u6587\u6863\u4e2d\u9009\u4e2d\u82f1\u6587\u5355\u8bcd\uff0c\u53f3\u952e\u70b9\u51fb\u300c\u540c\u4e49\u66ff\u6362\u300d\u5f00\u59cb\u3002';
+T.loading='\u6b63\u5728\u751f\u6210\u5019\u9009\u8bcd\u2026';
+T.noWord='\u8bf7\u5148\u5728\u6587\u6863\u4e2d\u9009\u4e2d\u4e00\u4e2a\u82f1\u6587\u5355\u8bcd';
+T.errNoProfile='\u5c1a\u672a\u914d\u7f6e API Key\uff0c\u8bf7\u5148\u6dfb\u52a0\u3002';
+var SYS_PROMPT = [
+  'You are an English writing assistant. User gives an English word and its sentence.',
+  'Recommend 5 contextually appropriate synonyms.',
+  'Same part of speech; exclude the original and trivial variants; sort by contextual fit.',
+  'Give 1 short Chinese reason each.'
+].join('\n');
+function getProfiles(){try{var raw=localStorage.getItem('PARAPHRASE_PROFILES');var l=raw?JSON.parse(raw):[];return Array.isArray(l)?l:[]}catch(e){return[]}}
+function saveProfiles(l){localStorage.setItem('PARAPHRASE_PROFILES',JSON.stringify(l))}
+function getActiveId(){return localStorage.getItem('PARAPHRASE_ACTIVE_PROFILE')||''}
+function setActiveId(id){localStorage.setItem('PARAPHRASE_ACTIVE_PROFILE',id)}
+function getActiveProfile(){var id=getActiveId();var l=getProfiles();for(var i=0;i<l.length;i++){if(l[i].id===id)return l[i]}return null}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function $(id){return document.getElementById(id)}
+function renderSettings(){
+  var list=getProfiles();var activeId=getActiveId();
+  var html='<div class="settings"><div class="toolbar"><button id="btnBack" class="ghost">'+T.back+'</button><span class="title">'+T.apiCfg+'</span><button id="btnAdd">'+T.add+'</button></div>';
+  if(list.length===0){
+    html+='<p class="hint">'+T.noCfg+'</p>';
+  }else{
+    html+='<ul style="list-style:none;padding:0">';
+    for(var i=0;i<list.length;i++){var p=list[i];var active=p.id===activeId;
+      var mask=p.apiKey.length>8?p.apiKey.slice(0,4)+'****'+p.apiKey.slice(-4):'****';
+      html+='<li class="'+(active?'profile active':'profile')+'">';
+      html+='<div class="row"><span>'+esc(p.name)+'</span><span class="model">'+esc(p.model)+'</span></div>';
+      html+='<div class="row meta"><span>'+mask+'</span><span class="actions">';
+      if(active){html+='<span class="badge">'+T.using+'</span>'}
+      else{html+='<button class="btnUse" data-i="'+i+'">'+T.use+'</button>'}
+      html+='<button class="btnEdit" data-i="'+i+'">'+T.edit+'</button><button class="btnDel" data-i="'+i+'">'+T.del+'</button></span></div>';
+      html+='</li>';
+    }
+    html+='</ul>';
+  }
+  html+='</div>';
+  app.innerHTML=html;
+  $('btnBack').onclick=renderMain;
+  $('btnAdd').onclick=function(){renderForm(null)};
+  var uses=app.querySelectorAll('.btnUse');
+  for(var j=0;j<uses.length;j++){uses[j].onclick=function(){var idx=+this.dataset.i;var l2=getProfiles();if(l2[idx]){setActiveId(l2[idx].id);renderSettings()}};}
+  var dels=app.querySelectorAll('.btnDel');
+  for(var k=0;k<dels.length;k++){dels[k].onclick=function(){var idx=+this.dataset.i;if(confirm(T.delConfirm)){var l3=getProfiles();l3.splice(idx,1);saveProfiles(l3);renderSettings()}};}
+}
+function renderForm(editProfile){
+  var p=editProfile||{name:'',apiKey:'',baseUrl:'',model:''};
+  var html='<div class="settings"><div class="toolbar"><button id="btnBack" class="ghost">'+T.back+'</button><span class="title">'+(editProfile?T.edit:T.add)+'</span></div><form id="profileForm">';
+  html+='<label>'+T.name+'<input name="name" value="'+esc(p.name)+'" placeholder="'+T.namePh+'" required maxlength="30"></label>';
+  html+='<label>'+T.apiKey+'<input name="apiKey" type="password" value="'+esc(p.apiKey)+'" required></label>';
+  html+='<label>Base URL<input name="baseUrl" value="'+esc(p.baseUrl)+'"></label>';
+  html+='<label>Model<input name="model" value="'+esc(p.model)+'"></label>';
+  html+='<div class="form-actions"><button type="submit">'+T.save+'</button></div></form></div>';
+  app.innerHTML=html;
+  $('btnBack').onclick=renderSettings;
+  $('profileForm').onsubmit=function(e){
+    e.preventDefault();
+    var name=this.name.value.trim();var apiKey=this.apiKey.value.trim();
+    if(!name||!apiKey){alert(T.nameReq);return}
+    var baseUrl=this.baseUrl.value.trim()||DEFAULT_BASE_URL;
+    var model=this.model.value.trim()||DEFAULT_MODEL;
+    var list=getProfiles();
+    if(editProfile){
+      for(var i=0;i<list.length;i++){if(list[i].id===editProfile.id){list[i].name=name;list[i].apiKey=apiKey;list[i].baseUrl=baseUrl;list[i].model=model}}
+    }else{
+      var id='p_'+Date.now();
+      list.push({id:id,name:name,apiKey:apiKey,baseUrl:baseUrl,model:model});
+      if(!getActiveId())setActiveId(id);
+    }
+    saveProfiles(list);renderSettings();
+  };
+}
+function renderMain(){
+  var profile=getActiveProfile();
+  if(!profile){renderSettings();return}
+  var html='<div class="panel"><div class="topbar"><span class="status ok">'+T.curCfg+esc(profile.name)+'</span><button id="btnSettings" class="ghost">'+T.settings+'</button></div><p class="hint">'+T.hint+'</p><div id="result"></div></div>';
+  app.innerHTML=html;
+  $('btnSettings').onclick=renderSettings;
+}
+function renderLoading(msg){var el=$('result');if(el)el.innerHTML='<p class="loading">'+(msg||T.loading)+'</p>'}
+function renderError(msg){var el=$('result');if(el)el.innerHTML='<p class="error">'+esc(msg)+'</p>'}
+function fetchCandidates(){
+  var profile=getActiveProfile();
+  if(!profile){renderSettings();return}
+  var app=window.Application;
+  var sel=null;
+  try{sel=app.ActiveDocument.Application.Selection}catch(e1){}
+  if(!sel){try{sel=app.Selection}catch(e2){}}
+  if(!sel){renderError('WPS API unavailable');return}
+  var word=(sel.Text||'').trim();
+  if(!word){renderError(T.noWord);return}
+  renderLoading();
+  var sentence='';
+  try{sentence=sel.Paragraphs(1).Range.Text||''}catch(e3){sentence=''}
+  var prompt='Word: '+word+'\nSentence: '+(sentence.trim()||'N/A');
+  fetch(profile.baseUrl.replace(/\/$/,'')+'/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+profile.apiKey},
+    body:JSON.stringify({model:profile.model,messages:[{role:'system',content:SYS_PROMPT},{role:'user',content:prompt}],temperature:0.3})
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(data){
+    var raw=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||'';
+    var candidates;
+    try{candidates=JSON.parse(raw)}catch(pe){
+      var m=raw.match(/\[[\s\S]*\]/);
+      if(!m)throw new Error('Cannot parse LLM response');
+      candidates=JSON.parse(m[0]);
+    }
+    if(!Array.isArray(candidates))throw new Error('Unexpected LLM response shape');
+    showCandidates(candidates.slice(0,5));
+  }).catch(function(err){renderError(err.message||String(err))});
+}
+function showCandidates(candidates){
+  var html='<ol class="candidates">';
+  for(var i=0;i<candidates.length;i++){
+    html+='<li data-word="'+esc(candidates[i].word)+'"><div class="word">'+esc(candidates[i].word)+'</div><div class="reason">'+esc(candidates[i].reason||'')+'</div></li>';
+  }
+  html+='</ol>';
+  $('result').innerHTML=html;
+  var items=app.querySelectorAll('.candidates li');
+  for(var j=0;j<items.length;j++){items[j].onclick=function(){replaceSelection(this.dataset.word)};}
+}
+function replaceSelection(newWord){
+  var app=window.Application;
+  var sel=null;
+  try{sel=app.ActiveDocument.Application.Selection}catch(e1){}
+  if(!sel){try{sel=app.Selection}catch(e2){}}
+  if(!sel)return;
+  var original=sel.Text||'';
+  var replacement=newWord;
+  if(original&&original===original.toUpperCase()&&original.length>1)replacement=newWord.toUpperCase();
+  else if(original&&/^[A-Z]/.test(original))replacement=newWord.charAt(0).toUpperCase()+newWord.slice(1);
+  sel.TypeText(replacement);
+}
+window.addEventListener('storage',function(e){if(e.key==='PARAPHRASE_FETCH_SIGNAL')fetchCandidates()});
+try{var ch=new BroadcastChannel('wps-paraphrasing');ch.onmessage=function(e){if(e.data&&e.data.type==='paraphrase:fetch')fetchCandidates()}}catch(e){}
+
+try { renderMain(); } catch (e) { document.body.innerHTML = '<pre style="color:red;padding:10px">Error: ' + (e.message || e) + '\n' + (e.stack || '') + '</pre>'; }
+window.onerror = function(msg, src, line, col) { document.body.innerHTML = '<pre style="color:red;padding:10px">JS Error: ' + msg + ' at ' + src + ' :' + line + ':' + col + '</pre>'; };
+
+</script>
+</body>
+</html>

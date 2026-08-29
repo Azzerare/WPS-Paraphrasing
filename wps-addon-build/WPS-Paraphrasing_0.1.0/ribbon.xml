@@ -1,0 +1,8 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="OnAddinLoad">
+  <contextMenus>
+    <contextMenu idMso="ContextMenuText">
+      <menuSeparator id="ParaphraseSeparator" getVisible="OnGetSeparatorVisible"/>
+      <button id="btnParaphraseCtx" label="同义替换" onAction="OnContextMenuParaphrase" getVisible="OnGetContextMenuVisible"/>
+    </contextMenu>
+  </contextMenus>
+</customUI>
