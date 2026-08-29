@@ -5,7 +5,7 @@
   <meta charset="UTF-8"/>
   <title>&#21516;&#20041;&#26367;&#25442;</title>
   <style>
-    body{margin:0;padding:12px;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#fff}
+    body{margin:0;padding:12px;overflow-y:auto;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;background:#fff}
     .word{font-weight:600;font-size:15px;margin-bottom:8px}
     .status{color:#888;font-style:italic;font-size:13px}
     .error{color:#c0392b;font-size:13px}
@@ -147,6 +147,16 @@ function start(){
   };
   xhr.send(JSON.stringify({model:profile.model,messages:[{role:'system',content:sysPrompt},{role:'user',content:userPrompt}],temperature:0.3}));
 }
+
+function autoResize(){
+  try{
+    var h = document.documentElement.scrollHeight;
+    if (h > 100) {
+      try { window.resizeTo(screen.width * 0.25, h + 24); } catch(e) {}
+    }
+  } catch(e) {}
+}
+new MutationObserver(function(){ setTimeout(autoResize, 50); }).observe(document.getElementById('root'), {childList: true, subtree: true});
 
 var blurTimer = null;
 window.addEventListener('blur', function() {
