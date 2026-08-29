@@ -27,4 +27,4 @@ $srvArgs2 = "-NoProfile -WindowStyle Hidden -EP Bypass -File " + $dstDir + "\ser
 Start-Process powershell.exe -ArgumentList ($srvArgs2 + " -WindowStyle Hidden")
 
 Write-Host "Installed. Server started. Please restart WPS."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+// Auto-exit
