@@ -1,11 +1,3 @@
-document.addEventListener('DOMContentLoaded', function() {
-  var info = 'DIAG: body=' + document.body.offsetWidth + 'x' + document.body.offsetHeight + ' scrollY=' + window.scrollY + ' app=' + !!document.getElementById('app');
-  var d = document.createElement('div');
-  d.style.cssText = 'position:fixed;top:0;left:0;background:yellow;padding:5px;z-index:99999;font-size:12px;';
-  d.textContent = info;
-  document.body.appendChild(d);
-  console.log(info);
-});
 var app = document.getElementById('app');
 var DEFAULT_BASE_URL = 'https://api.deepseek.com/v1';
 var DEFAULT_MODEL = 'deepseek-chat';
@@ -22,10 +14,14 @@ T.loading='\u6b63\u5728\u751f\u6210\u5019\u9009\u8bcd\u2026';
 T.noWord='\u8bf7\u5148\u5728\u6587\u6863\u4e2d\u9009\u4e2d\u4e00\u4e2a\u82f1\u6587\u5355\u8bcd';
 T.errNoProfile='\u5c1a\u672a\u914d\u7f6e API Key\uff0c\u8bf7\u5148\u6dfb\u52a0\u3002';
 var SYS_PROMPT = [
-  'You are an English writing assistant. User gives an English word and its sentence.',
-  'Recommend 5 contextually appropriate synonyms.',
-  'Same part of speech; exclude the original and trivial variants; sort by contextual fit.',
-  'Give 1 short Chinese reason each.'
+  'You are an English writing assistant for academic application essays (personal statements, statements of purpose).',
+  'User provides a word or phrase with 1-3 sentences of surrounding context from their essay.',
+  'Recommend exactly 6 alternatives: 4 single words and 2 short phrases (2-4 words).',
+  'All must: (1) fit the formal academic application register, being precise and natural without clich\u00e9s;',
+  '(2) match the part of speech of the original; (3) be contextually appropriate given the surrounding sentences.',
+  'Exclude the original and trivial variants. Sort by contextual fit, best first.',
+  'For each candidate provide: word, meaning (1 short Chinese definition), effect (1 short Chinese sentence explaining how this replacement shifts the tone or precision in this specific context).',
+  'Output strictly a JSON array of {word, meaning, effect} objects, nothing else.'
 ].join('\n');
 function getProfiles(){try{var raw=localStorage.getItem('PARAPHRASE_PROFILES');var l=raw?JSON.parse(raw):[];return Array.isArray(l)?l:[]}catch(e){return[]}}
 function saveProfiles(l){localStorage.setItem('PARAPHRASE_PROFILES',JSON.stringify(l))}
@@ -109,9 +105,17 @@ function fetchCandidates(){
   var word=(sel.Text||'').trim();
   if(!word){renderError(T.noWord);return}
   renderLoading();
-  var sentence='';
-  try{sentence=sel.Paragraphs(1).Range.Text||''}catch(e3){sentence=''}
-  var prompt='Word: '+word+'\nSentence: '+(sentence.trim()||'N/A');
+  var context='';
+  try{
+    var doc=window.Application.ActiveDocument;
+    var start=Math.max(0,sel.Start-600);
+    var end=Math.min(doc.Content.End,sel.End+600);
+    context=doc.Range(start,end).Text||'';
+  }catch(e3){
+    try{context=sel.Paragraphs(1).Range.Text||''}catch(e4){context=''}
+  }
+  context=context.replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
+  var prompt='Word: '+word+'\nContext: '+(context||'N/A');
   fetch(profile.baseUrl.replace(/\/$/,'')+'/chat/completions',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+profile.apiKey},
@@ -128,13 +132,15 @@ function fetchCandidates(){
       candidates=JSON.parse(m[0]);
     }
     if(!Array.isArray(candidates))throw new Error('Unexpected LLM response shape');
-    showCandidates(candidates.slice(0,5));
+    showCandidates(candidates.slice(0,6));
   }).catch(function(err){renderError(err.message||String(err))});
 }
 function showCandidates(candidates){
   var html='<ol class="candidates">';
   for(var i=0;i<candidates.length;i++){
-    html+='<li data-word="'+esc(candidates[i].word)+'"><div class="word">'+esc(candidates[i].word)+'</div><div class="reason">'+esc(candidates[i].reason||'')+'</div></li>';
+    html+='<li data-word="'+esc(candidates[i].word)+'"><div class="word">'+esc(candidates[i].word)+'</div>';
+    if(candidates[i].meaning)html+='<div class="meaning">'+esc(candidates[i].meaning)+'</div>';
+    if(candidates[i].effect)html+='<div class="effect">'+esc(candidates[i].effect)+'</div></li>';
   }
   html+='</ol>';
   $('result').innerHTML=html;
