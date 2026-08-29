@@ -83,12 +83,7 @@ function renderKeyForm(){
     var k=document.getElementById('keyInput').value.trim();
     if(!k)return;
     saveProfile(k);
-    document.addEventListener('click', function(e) {
-  if (e.target === document.body || e.target === document.documentElement) {
-    window.close();
-  }
-});
-start();
+
   };
 }
 function renderGenerating(){root.innerHTML='<p class=status>'+T.generating+'</p>';}
@@ -152,10 +147,13 @@ function start(){
   };
   xhr.send(JSON.stringify({model:profile.model,messages:[{role:'system',content:sysPrompt},{role:'user',content:userPrompt}],temperature:0.3}));
 }
-document.addEventListener('click', function(e) {
-  if (e.target === document.body || e.target === document.documentElement) {
-    window.close();
-  }
+
+var blurTimer = null;
+window.addEventListener('blur', function() {
+  blurTimer = setTimeout(function(){ window.close(); }, 200);
+});
+window.addEventListener('focus', function() {
+  if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
 });
 start();
 </script>
