@@ -67,7 +67,7 @@ function onContextMenuParaphrase() {
     var h = 900;
     try {
       w = Math.round(w * window.devicePixelRatio);
-      h = Math.min(Math.round(h * window.devicePixelRatio), screen.availHeight - 40);
+      h = Math.min(Math.round(h * window.devicePixelRatio), Math.round((screen.availHeight - 40) * window.devicePixelRatio));
     } catch (e0) {}
     app.ShowDialog(location.origin + '/dialog.html', 'Paraphrase', w, h, false);
   } catch (e) {
