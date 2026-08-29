@@ -106,7 +106,7 @@ function start(){
   renderGenerating();
   var sentence='';
   try{sentence=window.Application.ActiveDocument.Application.Selection.Paragraphs(1).Range.Text||''}catch(e){}
-  var sysPrompt='You are an English writing assistant. Given a word or phrase and its sentence, recommend 5 contextually appropriate alternatives. They can be single words or short phrases (2-4 words) if a phrase fits the context better than any single word. Match the part of speech. Exclude the original and trivial variants. Sort by contextual fit, best first. Give 1 short Chinese reason each. Output strictly a JSON array of {word, reason} objects, nothing else.';
+  var sysPrompt='You are an English writing assistant. Given a word or phrase and its sentence, recommend exactly 5 alternatives: 3 single words and 2 short phrases (2-4 words). Mix them so the single words and phrases are interleaved by contextual fit, not grouped. All must match the part of speech. Exclude the original and trivial variants. Sort by contextual fit, best first. Give 1 short Chinese reason each. Output strictly a JSON array of {word, reason} objects, nothing else.';
   var userPrompt='Word: '+word+'\nSentence: '+(sentence.trim()||'N/A');
   var xhr=new XMLHttpRequest();
   xhr.open('POST',profile.baseUrl.replace(/\/$/,'')+'/chat/completions',true);
