@@ -121,12 +121,7 @@ function start(){
   if(!word){renderError(T.noWord);return}
   var profile=getProfile();
   if(!profile){renderKeyForm();return}
-  var cached = getCachedResult();
-  if (cached && cached.word === word) {
-    renderCandidates(cached.word, cached.candidates);
-    setTimeout(reportAndClose, 300);
-    return;
-  }
+
   renderGenerating();
   var context=getContext();
   var sysPrompt='You are an English writing assistant for academic application essays (personal statements, statements of purpose). The user provides a word or phrase with 1-3 sentences of surrounding context from their essay. Recommend exactly 8 alternatives: 5 single words and 3 short phrases (2-4 words). All must: (1) fit the formal academic application register, being precise and natural without clich\u00e9s; (2) match the part of speech of the original; (3) be contextually appropriate given the surrounding sentences. Exclude the original and trivial variants. Sort by contextual fit, best first. For each candidate provide: word (the replacement), meaning (1 short Chinese definition), effect (1 short Chinese sentence explaining how this replacement shifts the tone or precision in this specific context). Output strictly a JSON array of {word, meaning, effect} objects, nothing else.';
@@ -148,9 +143,7 @@ function start(){
         candidates=JSON.parse(m[0]);
       }
       if(!Array.isArray(candidates)||candidates.length===0)throw new Error(T.parse);
-      cacheResult(word,candidates.slice(0,8));
-    renderCandidates(word,candidates.slice(0,8));
-    setTimeout(reportAndClose, 300);
+      renderCandidates(word,candidates.slice(0,8));
     }catch(err){renderError(T.fail+(err.message||String(err)))}
   };
   xhr.send(JSON.stringify({model:profile.model,messages:[{role:'system',content:sysPrompt},{role:'user',content:userPrompt}],temperature:0.3}));
@@ -158,30 +151,7 @@ function start(){
 
 
 
-function reportAndClose(){
-  try{
-    var h = document.documentElement.scrollHeight;
-    if (h > 200) {
-      localStorage.setItem('PARAPHRASE_DIALOG_HEIGHT', String(h + 16));
-      localStorage.setItem('PARAPHRASE_DIALOG_HEIGHT_TS', String(Date.now()));
-    }
-  } catch(e) {}
-  window.close();
-}
-function getCachedResult(){
-  try{
-    var raw = sessionStorage.getItem('PARAPHRASE_LAST_RESULT');
-    if (!raw) return null;
-    var obj = JSON.parse(raw);
-    if (Date.now() - obj.ts > 10000) return null;
-    return obj;
-  }catch(e){return null}
-}
-function cacheResult(word, candidates){
-  try{
-    sessionStorage.setItem('PARAPHRASE_LAST_RESULT', JSON.stringify({word:word, candidates:candidates, ts:Date.now()}));
-  }catch(e){}
-}
+
 
 var blurTimer = null;
 window.addEventListener('blur', function() {

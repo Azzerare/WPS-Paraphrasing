@@ -52,54 +52,28 @@ function onShowPane() {
   try {
     var app = window.Application;
     if (app && app.ShowDialog) {
-      app.ShowDialog(location.origin + '/taskpane.html', 'Settings', 480, 840, false);
+      app.ShowDialog(location.origin + '/taskpane.html', 'Settings', 480, 900, false);
     }
   } catch (e) {}
 }
 
-var dialogOpen = false;
 function onContextMenuParaphrase() {
   try {
     var app = window.Application;
     if (!app || !app.ShowDialog) {
       return;
     }
-    sessionStorage.removeItem('PARAPHRASE_LAST_RESULT');
     var w = 480;
-    var h = 840;
-    try {
-      var savedH = parseInt(localStorage.getItem('PARAPHRASE_DIALOG_HEIGHT') || '0');
-      if (savedH > 200 && Date.now() - parseInt(localStorage.getItem('PARAPHRASE_DIALOG_HEIGHT_TS') || '0') < 60000) {
-        h = Math.min(savedH, Math.round(screen.availHeight / window.devicePixelRatio) - 40);
-      }
-    } catch(e) {}
+    var h = 900;
     try {
       w = Math.round(w * window.devicePixelRatio);
-      h = Math.round(h * window.devicePixelRatio);
+      h = Math.min(Math.round(h * window.devicePixelRatio), screen.availHeight - 40);
     } catch (e0) {}
-    dialogOpen = true;
     app.ShowDialog(location.origin + '/dialog.html', 'Paraphrase', w, h, false);
-    dialogOpen = false;
   } catch (e) {
-    dialogOpen = false;
+    // silent
   }
 }
-window.addEventListener('storage', function(e) {
-  if (e.key === 'PARAPHRASE_DIALOG_HEIGHT' && dialogOpen) {
-    try {
-      var newH = parseInt(e.newValue || '0');
-      if (newH > 200) {
-        // Close current dialog by opening a new one at the right height
-        var app = window.Application;
-        if (app && app.ShowDialog) {
-          var w = Math.round(480 * window.devicePixelRatio);
-          var h = Math.min(Math.round(newH * window.devicePixelRatio), Math.round(screen.availHeight));
-          app.ShowDialog(location.origin + '/dialog.html', 'Paraphrase', w, h, false);
-        }
-      }
-    } catch(e) {}
-  }
-});
 
 window.OnAddinLoad = onAddinLoad;
 window.OnShowPane = onShowPane;
