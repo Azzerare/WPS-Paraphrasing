@@ -16,7 +16,7 @@ T.errNoProfile='\u5c1a\u672a\u914d\u7f6e API Key\uff0c\u8bf7\u5148\u6dfb\u52a0\u
 var SYS_PROMPT = [
   'You are an English writing assistant for academic application essays (personal statements, statements of purpose).',
   'User provides a word or phrase with 1-3 sentences of surrounding context from their essay.',
-  'Recommend exactly 6 alternatives: 4 single words and 2 short phrases (2-4 words).',
+  'Recommend exactly 8 alternatives: 5 single words and 3 short phrases (2-4 words).',
   'All must: (1) fit the formal academic application register, being precise and natural without clich\u00e9s;',
   '(2) match the part of speech of the original; (3) be contextually appropriate given the surrounding sentences.',
   'Exclude the original and trivial variants. Sort by contextual fit, best first.',
@@ -132,7 +132,7 @@ function fetchCandidates(){
       candidates=JSON.parse(m[0]);
     }
     if(!Array.isArray(candidates))throw new Error('Unexpected LLM response shape');
-    showCandidates(candidates.slice(0,6));
+    showCandidates(candidates.slice(0,8));
   }).catch(function(err){renderError(err.message||String(err))});
 }
 function showCandidates(candidates){

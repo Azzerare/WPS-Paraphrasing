@@ -52,7 +52,7 @@ function onShowPane() {
   try {
     var app = window.Application;
     if (app && app.ShowDialog) {
-      app.ShowDialog(location.origin + '/taskpane.html', 'Settings', 420, 520, false);
+      app.ShowDialog(location.origin + '/taskpane.html', 'Settings', 480, 560, false);
     }
   } catch (e) {}
 }
@@ -63,11 +63,11 @@ function onContextMenuParaphrase() {
     if (!app || !app.ShowDialog) {
       return;
     }
-    var w = 420;
-    var h = 520;
+    var w = 480;
+    var h = 560;
     try {
-      w = Math.round(420 * window.devicePixelRatio);
-      h = Math.round(520 * window.devicePixelRatio);
+      w = Math.round(480 * window.devicePixelRatio);
+      h = Math.round(560 * window.devicePixelRatio);
     } catch (e0) {}
     app.ShowDialog(location.origin + '/dialog.html', 'Paraphrase', w, h, false);
   } catch (e) {
