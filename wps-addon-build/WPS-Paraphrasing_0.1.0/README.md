@@ -1,34 +1,26 @@
 WPS-Paraphrasing Add-on v0.1.0
 ==============================
 
-Offline package for WPS Office add-on: context-aware English paraphrasing via DeepSeek API.
+Context-aware English paraphrasing via DeepSeek API for WPS Office.
 
-## Install on another device
+## One-click install (recommended)
 
-1. Extract this folder to:
-   %APPDATA%\kingsoft\wps\jsaddons\WPS-Paraphrasing_0.1.0\
-
-2. Edit (or create) %APPDATA%\kingsoft\wps\jsaddons\publish.xml and add:
-
-   <jspluginonline name= WPS-Paraphrasing type=wps url=file:///%APPDATA%/kingsoft/wps/jsaddons/WPS-Paraphrasing_0.1.0/ install=null enable=enable/>
-
-   Note: replace %APPDATA% with the actual absolute path (e.g. C:/Users/<name>/AppData/Roaming/).
-
+1. Extract this folder anywhere.
+2. Double-click install.bat
 3. Restart WPS. Select an English word, right-click, choose the paraphrase item.
-
 4. First use: enter your DeepSeek API key when prompted.
-   The key is stored locally in WPS settings (not uploaded anywhere).
 
-## Alternative: serve over HTTP
+To uninstall: double-click uninstall.bat, then restart WPS.
 
-If file:// does not work on the target device, serve this folder:
-   npx serve -p 3889
-Then use url=http://127.0.0.1:3889/ in publish.xml.
+## Manual install
 
-## Files
+1. Copy this folder to %APPDATA%\kingsoft\wps\jsaddons\WPS-Paraphrasing\
+2. Add to publish.xml:
+   see install.ps1 for the exact line to add
+3. Restart WPS.
 
-- index.html      host page (hidden, defines Ribbon/context-menu callbacks)
-- dialog.html     popup UI (API key input + candidate list + replacement)
-- taskpane.html   settings page (reserved)
-- ribbon.xml      context menu definition
-- jsplugins.xml   WPS plugin manifest
+## Requirements
+
+- WPS Office 2019 or newer
+- Windows
+- DeepSeek API key (get one at platform.deepseek.com)
