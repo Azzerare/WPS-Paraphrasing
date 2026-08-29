@@ -1,46 +1,30 @@
 $ErrorActionPreference = "Stop"
-$pluginName = "WPS-Paraphrasing"
+
 $srcDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$jsaddonsDir = Join-Path $env:APPDATA "kingsoft\wps\jsaddons"
-$dstDir = Join-Path $jsaddonsDir $pluginName
+$jsaddons = Join-Path $env:APPDATA "kingsoft\wps\jsaddons"
+$dstDir = Join-Path $jsaddons "WPS-Paraphrasing"
 
-if (-not (Test-Path $jsaddonsDir)) {
-    New-Item -ItemType Directory -Path $jsaddonsDir -Force | Out-Null
-}
-
-if (Test-Path $dstDir) {
-    Remove-Item $dstDir -Recurse -Force
-}
+# Copy files
+if (-not (Test-Path $jsaddons)) { New-Item -ItemType Directory -Path $jsaddons -Force | Out-Null }
+if (Test-Path $dstDir) { Remove-Item $dstDir -Recurse -Force }
 Copy-Item $srcDir $dstDir -Recurse -Force
 
-$publishXmlPath = Join-Path $jsaddonsDir "publish.xml"
-$pluginUrl = "file:///" + $dstDir.Replace('\','/') + "/"
+# Startup shortcut
+$startup = [Environment]::GetFolderPath("Startup")
+$wsh = New-Object -ComObject WScript.Shell
+$sc = $wsh.CreateShortcut((Join-Path $startup "WPS-Paraphrasing-Server.lnk"))
+$sc.TargetPath = "powershell.exe"
+$srvArgs = "-NoProfile -WindowStyle Hidden -EP Bypass -File " + $dstDir + "\server.ps1"
+$sc.Arguments = $srvArgs
+$sc.WindowStyle = 7
+$sc.Save()
 
-if (Test-Path $publishXmlPath) {
-    [xml]$doc = Get-Content $publishXmlPath -Encoding UTF8
-} else {
-    $doc = New-Object System.Xml.XmlDocument
-    $declaration = $doc.CreateXmlDeclaration("1.0","UTF-8",$null)
-    $doc.AppendChild($declaration) | Out-Null
-    $root = $doc.CreateElement("jsplugins")
-    $doc.AppendChild($root) | Out-Null
-}
+# publish.xml
+Copy-Item (Join-Path $srcDir "publish-template.xml") (Join-Path $jsaddons "publish.xml") -Force
 
-$root = $doc.DocumentElement
-$xpath = "//jspluginonline[@name='$pluginName']"
-$existing = $root.SelectNodes($xpath)
-foreach ($node in $existing) { $root.RemoveChild($node) | Out-Null }
+# Start server
+$srvArgs2 = "-NoProfile -WindowStyle Hidden -EP Bypass -File " + $dstDir + "\server.ps1"
+Start-Process powershell.exe -ArgumentList ($srvArgs2 + " -WindowStyle Hidden")
 
-$entry = $doc.CreateElement("jspluginonline")
-$entry.SetAttribute("name", $pluginName)
-$entry.SetAttribute("type", "wps")
-$entry.SetAttribute("url", $pluginUrl)
-$entry.SetAttribute("install", "null")
-$entry.SetAttribute("enable", "enable")
-$root.AppendChild($entry) | Out-Null
-
-$doc.Save($publishXmlPath)
-Write-Host "Installed successfully. Please restart WPS."
-Write-Host "Plugin location: " + $dstDir
-Write-Host "Press any key to exit..."
+Write-Host "Installed. Server started. Please restart WPS."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
